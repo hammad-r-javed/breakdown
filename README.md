@@ -1,7 +1,7 @@
 # Breakdown
 
 ## Description
-THe in-house project management tool I plan on developing over time.
+The in-house project management tool I plan on developing over time.
 To start with it's simply going to be a tool that generates work breakdown structures and WBS tables for me.
 
 ## Reasons for creating the project
