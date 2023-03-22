@@ -8,8 +8,12 @@ show_params()
     echo -e "  -sls                         Starts local server at localhost:4000"
     echo -e "  -start-local-server          Starts local server at localhost:4000"
     echo ""
-    echo -e "  --c                          Builds client src code"
+    echo -e "  -c                           Builds client src code"
     echo -e "  -client                      Builds client src code"
+    echo ""
+    echo -e "  -h                           Print build script command line options"
+    echo -e "  -help                        Print build script command line options"
+
 }
 
 folders_check()
@@ -34,6 +38,8 @@ do
     elif [[ $param == "-client" ]] || [[ $param == "-c" ]]; then
         cp $PROJ_DIR/src/client/index.html $PROJ_DIR/public/index.html
         elm make src/client/Breakdown.elm --output public/breakdown.js
+    elif [[ $param == "-help" ]] || [[ $param == "-h" ]]; then
+        show_params
     else
         echo -e "'$param' is an invalid param."
         show_params
