@@ -309,7 +309,7 @@ formInputs loginOptions =
                     } 
                 , Elem.row
                     [ Elem.centerX ]
-                    [ Elem.text "Alreadt have an account?  "
+                    [ Elem.text "Already have an account?  "
                     , ElemInput.button
                         [ ElemFont.size 18
                         , ElemFont.bold

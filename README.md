@@ -16,20 +16,15 @@ It's basically just been initialised so don't expect..well anything right now.
 * This project, at least in the beginning is going to be quite messy probably as I'm going to use it to explore languages/libraries/frameworks if any interest me at the time.
 
 ### Requirements
-* Elm language compiler
-* Python3
-* PHP **[Optional]** - Something to host the resulting index.html file if you want
+* Elm lang compiler
+* Go lang compiler
+* Python3 **[Optional]**
 
 ### Build Project
 
-#### Client 
-Currently only the client can be built:
+Current build process is v simple. Run `./build.sh` in proj root dir and you are done!
 
-```
-./build.sh -bc
-```
-
-The resulting `public/index.html` file can be opened in any browser
+The web app can then simply be run with `./run.sh`. Current default address for app is at `127.0.0.1:8000`. This is temporary.
 
 ## Contributions
 Not just yet
