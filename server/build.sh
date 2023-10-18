@@ -13,5 +13,5 @@ function print_logline {
 # 
 # folders_check
 
-print_logline "Building Proj"
+print_logline "building proj"
 go build -o build/main cmd/main.go

@@ -8,29 +8,29 @@ function print_logline {
     echo "[$(date +\"%d-%m-%y\")][$(date +\"%T\")] [full-proj-build] $1"
 }
 
-print_logline "Starting full project build process"
+print_logline "full project build process start"
 
 function build_client {
-    print_logline "Executing client build process"
+    print_logline "client build process start"
 
     cd $CLIENT_FOLDER_NAME
     ./build.sh
     cd ../
 
-    print_logline "Client build process completed"
+    print_logline "client build process end"
 } 
 
 
 function build_server {
-    print_logline "Executing server build process"
+    print_logline "server build process start"
 
     cd $SERVER_FOLDER_NAME
     ./build.sh
     cd ../
 
-    print_logline "Server build process completed"
+    print_logline "server build process end"
 }
 
 build_client && build_server
 
-print_logline "Full project build process completed"
+print_logline "full project build process end"

@@ -5,7 +5,7 @@ function print_logline {
 function folders_check {
     if [[ ! -d out ]]; then
         print_logline "'out/' dir not found."
-        print_logline "Creating 'out/' dir"
+        print_logline "creating 'out/' dir"
         mkdir out
         print_logline "'out/' dir successfully created"
     fi
@@ -13,6 +13,6 @@ function folders_check {
 
 folders_check
 
-print_logline "Building Proj"
+print_logline "building proj"
 elm make src/login_page/Login.elm --output out/login.js
 cp src/login_page/login.html out/login.html
