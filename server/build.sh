@@ -1,5 +1,5 @@
 function print_logline {
-    echo "[$(date +\"%d-%m-%y\")][$(date +\"%T\")] [backend-build] $1"
+    echo "[$(date +\"%d-%m-%y\")][$(date +\"%T\")] [server-build] $1"
 }
 
 # function folders_check {

@@ -22,7 +22,7 @@ It's basically just been initialised so don't expect..well anything right now.
 
 ### Build Project
 
-Current build process is v simple. Run `./build.sh` in proj root dir and you are done!
+Current build process is very simple. Run `./build.sh` in proj root dir and you are done!
 
 The web app can then simply be run with `./run.sh`. Current default address for app is at `127.0.0.1:8000`. This is temporary.
 
