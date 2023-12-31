@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function print_logline {
     echo "[$(date +\"%d-%m-%y\")][$(date +\"%T\")] [server-build] $1"
 }

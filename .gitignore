@@ -26,3 +26,4 @@ public/
 IGNORE/
 .DS_Store
 .localized
+db/

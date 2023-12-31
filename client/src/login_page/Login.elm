@@ -151,7 +151,7 @@ update msg loginOptions =
 
         ReceivedLoginRequestResponse response ->
             case response of
-                -- actually handle different errors! - https://package.elm-lang.org/packages/elm/http/latest/Http#Error
+                -- TODO - actually handle the errors! - https://package.elm-lang.org/packages/elm/http/latest/Http#Error
                 Err _ ->
                     case loginOptions of
                         Login loginForm ->
@@ -281,6 +281,7 @@ formHead =
         [ Elem.row
             [ ElemRegion.heading 1
             , ElemFont.size 36
+        
             ]
             [ Elem.text "Welcome to Breakdown!" ]
 

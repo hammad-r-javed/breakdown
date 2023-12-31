@@ -8,7 +8,15 @@ function print_logline {
     echo "[$(date +\"%d-%m-%y\")][$(date +\"%T\")] [full-proj-build] $1"
 }
 
-print_logline "full project build process start"
+function folders_check {
+    if [[ ! -d db ]]; then
+        print_logline "'db' dir not found."
+        print_logline "creating 'db' dir"
+        mkdir out
+        print_logline "'db' dir successfully created"
+        # TODO - init DB here
+    fi
+}
 
 function build_client {
     print_logline "client build process start"
@@ -30,6 +38,10 @@ function build_server {
 
     print_logline "server build process end"
 }
+
+print_logline "full project build process start"
+
+folders_check
 
 build_client && build_server
 
