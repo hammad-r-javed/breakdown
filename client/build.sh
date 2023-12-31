@@ -13,6 +13,6 @@ function folders_check {
 
 folders_check
 
-print_logline "building proj"
+print_logline "building client proj"
 elm make src/login_page/Login.elm --output out/login.js
 cp src/login_page/login.html out/login.html
