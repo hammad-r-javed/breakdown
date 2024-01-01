@@ -1,12 +1,15 @@
 package main
 import (
 	"log"
+	"io"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
 	"net/http"
+	"encoding/json"
 	"html/template"
+	"github.com/gorilla/sessions"
 )
 
 type LoginCred struct {
@@ -17,6 +20,7 @@ type LoginCred struct {
 type ServerCtx struct {
 	address string
 	staticContentDir string
+	cookieStore *sessions.CookieStore
 	db DataBase
 }
 
@@ -38,15 +42,20 @@ func NewServerCtx() (*ServerCtx, error) {
 		return nil, errors.Join(dbInitErr, errors.New("Unable to init database!"))
 	}
 
+	// TEMP
+	key := []byte("super-secret-key")
+	store := sessions.NewCookieStore(key)
+
 	// TODO - load from config file
-	ctx := ServerCtx{"127.0.0.1:8000", "client/out", db}
+	ctx := ServerCtx{"127.0.0.1:8000", "client/out", store, db}
 	return &ctx, nil
 }
 
 func StartServer(serverCtx *ServerCtx) {
 	fs := http.FileServer(http.Dir(serverCtx.staticContentDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx, "login.html"), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx, "login.html"), CheckAuth(serverCtx), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/api/login", ApplyMiddlewares(loginAuth(serverCtx), AllowedMethods(http.MethodPost)))
 
 	log.Println("Starting web server at ", serverCtx.address)
 	http.ListenAndServe(serverCtx.address, nil)
@@ -70,6 +79,29 @@ func AllowedMethods(methods ...string) Middleware {
 			}
 			f(w, r)
 		}
+	}
+}
+
+func loginAuth(s *ServerCtx) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Sorry, something went wrong!!")
+			return
+		}
+
+		var creds LoginCred
+		err = json.Unmarshal([]byte(body), &creds)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error, Cannot deserialise json data")
+			return
+		}
+		// TODO - carry out credential verification + update session data accordingly
+		fmt.Fprintf(w, "Username = '%s'\nPassword = '%s'\n", creds.Username, creds.Password)
+
 	}
 }
 

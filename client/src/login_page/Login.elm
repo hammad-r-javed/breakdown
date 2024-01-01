@@ -333,7 +333,7 @@ formInputs loginOptions =
                 -- Form Footer
                 , Elem.row
                     [ Elem.centerX ]
-                    [ Elem.text "Don't have an account?"
+                    [ Elem.text "Don't have an account?  "
                     , ElemInput.button
                         [ ElemFont.size 18
                         , ElemFont.bold
