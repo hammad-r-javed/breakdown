@@ -20,7 +20,6 @@ type User struct {
 	username string
 	password string
 	sessionID string
-	authenticated int
 	authExpiration int
 }
 
@@ -67,7 +66,7 @@ func (ctx *SqliteDB) getUsers() ([]User, error) {
 	user := User{}
 	userArr := make([]User, 0)
 	for rows.Next() {
-		err := rows.Scan(&user.id, &user.username, &user.password, &user.sessionID, &user.authenticated, &user.authExpiration);
+		err := rows.Scan(&user.id, &user.username, &user.password, &user.sessionID, &user.authExpiration);
 		if err != nil {
 			return nil, err
 		}
@@ -78,31 +77,26 @@ func (ctx *SqliteDB) getUsers() ([]User, error) {
 }
 
 func (ctx *SqliteDB) isSessionAuthed(sessionId string) (bool, error) {
-	rows, queryErr:= ctx.dbCtx.Query("SELECT authenticated FROM users WHERE session_id=?", sessionId)
+	rows, queryErr:= ctx.dbCtx.Query("SELECT user_id FROM users WHERE session_id=?", sessionId)
 	if queryErr != nil {
 		wrappedErr := errors.Join(queryErr, errors.New("isSessionAuthed() -> Unable to query sqlite3 db!"))
 		return false, wrappedErr
 	}
 
-	raw := 0 
-	authed := false
-	authedArr := make([]bool, 0)
+	userId := 0
+	// authed := false
+	authedArr := make([]int, 0)
 	for rows.Next() {
-		scanErr := rows.Scan(&raw)
+		scanErr := rows.Scan(&userId)
 		if scanErr != nil {
 			wrappedErr := errors.Join(scanErr, errors.New("isSessionAuthed() -> Unable to query sqlite3 db!"))
 			return false, wrappedErr
 		}
-		if raw == 0 {
-			authed = false
-		} else {
-			authed = true
-		}
-		authedArr = append(authedArr, authed)
+		authedArr = append(authedArr, userId)
 	}
 	log.Printf("len(authedArr) = %d\n", len(authedArr))
 	if len(authedArr) == 0 {
 		return false, nil
 	}
-	return authedArr[0], nil
+	return true, nil
 }
