@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"html/template"
-	"github.com/gorilla/sessions"
+	"github.com/google/uuid"
 )
 
 type LoginCred struct {
@@ -20,7 +20,6 @@ type LoginCred struct {
 type ServerCtx struct {
 	address string
 	staticContentDir string
-	cookieStore *sessions.CookieStore
 	db DataBase
 }
 
@@ -42,12 +41,8 @@ func NewServerCtx() (*ServerCtx, error) {
 		return nil, errors.Join(dbInitErr, errors.New("Unable to init database!"))
 	}
 
-	// TEMP
-	key := []byte("super-secret-key")
-	store := sessions.NewCookieStore(key)
-
 	// TODO - load from config file
-	ctx := ServerCtx{"127.0.0.1:8000", "client/out", store, db}
+	ctx := ServerCtx{"127.0.0.1:8000", "client/out", db}
 	return &ctx, nil
 }
 
@@ -90,9 +85,10 @@ func AllowedMethods(methods ...string) Middleware {
 
 func loginAuth(s *ServerCtx) http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
+		logRoute(r)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "Sorry, something went wrong!!")
 			return
@@ -105,9 +101,33 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 			fmt.Fprintf(w, "Error, Cannot deserialise json data")
 			return
 		}
-		// TODO - carry out credential verification + update session data accordingly
-		fmt.Fprintf(w, "Username = '%s'\nPassword = '%s'\n", creds.Username, creds.Password)
 
+		userId, credsVerificationErr := s.db.credsExist(creds.Username, creds.Password)
+		if credsVerificationErr != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Sorry, something went wrong!!")
+			return
+		}
+
+		if userId == -1 {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintf(w, "Invalid username or password!")
+			return
+		}
+
+		sessionId := uuid.New().String()
+		startSessionErr := s.db.startUserSession(userId, sessionId)
+		if startSessionErr != nil {
+			log.Println(startSessionErr)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Sorry, something went wrong!!")
+			return
+		}
+
+		w.Header().Set("Set-Cookie", "sessionId=" + sessionId + "; Path=/")
+		w.WriteHeader(200)
+		return
 	}
 }
 

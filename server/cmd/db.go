@@ -1,7 +1,8 @@
 package main
 
 import (
-	"log"
+	// "log"
+	"time"
 	"fmt"
 	"errors"
 	"database/sql"
@@ -27,6 +28,8 @@ type DataBase interface {
 	init() error
 	getUsers() ([]User, error)
 	isSessionAuthed(string) (bool, error)
+	credsExist(string, string) (int, error)
+	startUserSession(int, string) error
 }
 
 // TODO - temp config
@@ -77,14 +80,14 @@ func (ctx *SqliteDB) getUsers() ([]User, error) {
 }
 
 func (ctx *SqliteDB) isSessionAuthed(sessionId string) (bool, error) {
-	rows, queryErr:= ctx.dbCtx.Query("SELECT user_id FROM users WHERE session_id=?", sessionId)
+	tStamp := time.Now().Unix()
+	rows, queryErr:= ctx.dbCtx.Query("SELECT user_id FROM users WHERE session_id=? AND auth_expiration>?", sessionId, tStamp)
 	if queryErr != nil {
 		wrappedErr := errors.Join(queryErr, errors.New("isSessionAuthed() -> Unable to query sqlite3 db!"))
 		return false, wrappedErr
 	}
 
 	userId := 0
-	// authed := false
 	authedArr := make([]int, 0)
 	for rows.Next() {
 		scanErr := rows.Scan(&userId)
@@ -94,9 +97,41 @@ func (ctx *SqliteDB) isSessionAuthed(sessionId string) (bool, error) {
 		}
 		authedArr = append(authedArr, userId)
 	}
-	log.Printf("len(authedArr) = %d\n", len(authedArr))
 	if len(authedArr) == 0 {
 		return false, nil
 	}
 	return true, nil
+}
+
+func (ctx *SqliteDB) credsExist(username string, password string) (int, error) {
+	rows, queryErr:= ctx.dbCtx.Query("SELECT user_id FROM users WHERE username=? AND password=?", username, password)
+	if queryErr != nil {
+		wrappedErr := errors.Join(queryErr, errors.New("credsExist() -> Unable to query sqlite3 db!"))
+		return -1, wrappedErr
+	}
+
+	userId := 0
+	authedArr := make([]int, 0)
+	for rows.Next() {
+		scanErr := rows.Scan(&userId)
+		if scanErr != nil {
+			wrappedErr := errors.Join(scanErr, errors.New("credsExist() -> Unable to query sqlite3 db!"))
+			return -1, wrappedErr
+		}
+		authedArr = append(authedArr, userId)
+	}
+	if len(authedArr) == 0 {
+		return -1, nil
+	}
+	return authedArr[0], nil
+}
+
+func (ctx *SqliteDB) startUserSession(userId int, sessionId string) error {
+	newAuthExpiration := time.Now().Unix() + 1800 // auth valid for 30 mins
+	_, queryErr:= ctx.dbCtx.Exec("UPDATE users SET auth_expiration=?, session_id=? WHERE user_id=?", newAuthExpiration, sessionId, userId)
+	if queryErr != nil {
+		wrappedErr := errors.Join(queryErr, errors.New("startUserSession() -> Unable to query sqlite3 db!"))
+		return wrappedErr
+	}
+	return nil
 }

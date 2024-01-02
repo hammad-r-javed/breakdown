@@ -1,6 +1,7 @@
 module Login exposing (main)
 
 import Browser
+import Browser.Navigation as Nav
 import Components
 import Element as Elem
 import Element.Background as ElemBg
@@ -88,6 +89,11 @@ loginAuthUrl =
     baseUrl ++ "/api/login"
 
 
+dashboardUrl : String
+dashboardUrl =
+    baseUrl ++ "/dashboard"
+
+
 type Msg
     = UpdateLoginForm LoginForm
     | UpdateSignUpForm SignUpForm
@@ -170,12 +176,12 @@ update msg loginOptions =
                     case loginOptions of
                         Login loginForm ->
                             ( Login { emptyLoginForm | serverResponse = responseString }
-                            , Cmd.none
+                            , Nav.load dashboardUrl
                             )
 
                         SignUp _ ->
                             ( Login { emptyLoginForm | serverResponse = responseString }
-                            , Cmd.none
+                            , Nav.load dashboardUrl
                             )
 
 
