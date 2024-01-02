@@ -158,17 +158,37 @@ update msg loginOptions =
             )
 
         ReceivedLoginRequestResponse response ->
-            case response of
-                -- TODO - actually handle the errors! - https://package.elm-lang.org/packages/elm/http/latest/Http#Error
-                Err _ ->
-                    case loginOptions of
-                        Login loginForm ->
-                            ( Login { loginForm | serverResponse = "ERROR!" }
-                            , Cmd.none
-                            )
+            let
+                invalidCredsResponse =
+                    "Invalid username or password!"
 
-                        SignUp _ ->
-                            ( Login { emptyLoginForm | serverResponse = "ERROR!" }
+                somethingWentWrongResponse =
+                    "Something went wrong, please try again later!"
+            in
+            case response of
+                Err httpErr ->
+                    case httpErr of
+                        Http.BadStatus status ->
+                            case status of
+                                401 ->
+                                    case loginOptions of
+                                        Login loginForm ->
+                                            ( Login { emptyLoginForm | serverResponse = invalidCredsResponse }
+                                            , Cmd.none
+                                            )
+
+                                        SignUp _ ->
+                                            ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
+                                            , Cmd.none
+                                            )
+
+                                _ ->
+                                    ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
+                                    , Cmd.none
+                                    )
+
+                        _ ->
+                            ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
                             , Cmd.none
                             )
 
@@ -258,6 +278,27 @@ formInputs : LoginOptions -> Elem.Element Msg
 formInputs loginOptions =
     case loginOptions of
         Login loginForm ->
+            let
+                serverResponseBox =
+                    case loginForm.serverResponse of
+                        "" ->
+                            Elem.text ""
+
+                        _ ->
+                            Elem.el
+                                [ Elem.centerX
+                                , Elem.width Elem.shrink
+                                , Elem.height Elem.shrink
+                                ]
+                            <|
+                                Elem.el
+                                    [ Elem.paddingXY 10 10
+                                    , ElemBg.color <| Elem.rgb 0.55 0 0
+                                    , ElemBorder.rounded 5
+                                    ]
+                                <|
+                                    Elem.text loginForm.serverResponse
+            in
             Elem.column
                 [ Elem.centerX
                 , Elem.spacing 30
@@ -279,6 +320,7 @@ formInputs loginOptions =
                     , onChange = \newPassword -> UpdateLoginForm { loginForm | password = newPassword }
                     , show = False
                     }
+                , serverResponseBox
                 , ElemInput.button
                     [ ElemFont.size 30
                     , Elem.centerX
