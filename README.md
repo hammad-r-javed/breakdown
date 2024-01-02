@@ -16,8 +16,8 @@ It's basically just been initialised so don't expect..well anything right now.
 
 ### Requirements
 * Elm lang compiler
+* elm-format
 * Go lang compiler
-* Python3 **[Optional]**
 
 ### Build Project
 
