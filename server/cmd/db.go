@@ -19,6 +19,9 @@ type User struct {
 	id int
 	username string
 	password string
+	sessionID string
+	authenticated int
+	authExpiration int
 }
 
 type DataBase interface {
@@ -63,7 +66,7 @@ func (ctx *SqliteDB) getUsers() ([]User, error) {
 	user := User{}
 	userArr := make([]User, 0)
 	for rows.Next() {
-		err := rows.Scan(&user.id, &user.username, &user.password);
+		err := rows.Scan(&user.id, &user.username, &user.password, &user.sessionID, &user.authenticated, &user.authExpiration);
 		if err != nil {
 			return nil, err
 		}

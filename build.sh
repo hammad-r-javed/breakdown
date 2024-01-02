@@ -9,7 +9,7 @@ function print_logline {
 }
 
 function init_db {
-	sqlite3 db/main.db "CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, password TEXT NOT NULL);"
+	sqlite3 db/main.db "CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, password TEXT NOT NULL, session_id TEXT NOT NULL, authenticated INTEGER NOT NULL, auth_expiration INTEGER NOT NULL);"
 }
 
 function folders_check {

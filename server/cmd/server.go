@@ -16,6 +16,7 @@ type LoginCred struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+// CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, password TEXT NOT NULL, session_id TEXT NOT NULL, authenticated INTEGER NOT NULL, auth_expiration INTEGER NOT NULL)
 
 type ServerCtx struct {
 	address string
@@ -54,11 +55,16 @@ func NewServerCtx() (*ServerCtx, error) {
 func StartServer(serverCtx *ServerCtx) {
 	fs := http.FileServer(http.Dir(serverCtx.staticContentDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx, "login.html"), checkAuth(serverCtx), AllowedMethods(http.MethodGet)))
+	// http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx, "login.html"), checkAuth(serverCtx), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx), AllowedMethods(http.MethodGet)))
 	http.HandleFunc("/api/login", ApplyMiddlewares(loginAuth(serverCtx), AllowedMethods(http.MethodPost)))
 
 	log.Println("Starting web server at ", serverCtx.address)
 	http.ListenAndServe(serverCtx.address, nil)
+}
+
+func logRoute(r *http.Request, path string) {
+	log.Printf(`[ "%s" ] Request from %s\n`, path, r.RemoteAddr)
 }
 
 func ApplyMiddlewares(f http.HandlerFunc, ms ...Middleware) http.HandlerFunc {
@@ -105,15 +111,18 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 	}
 }
 
-func rootPage(s *ServerCtx, p string) http.HandlerFunc {
+func rootPage(s *ServerCtx) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logRoute(r, "/")
 		if r.URL.Path != "/" {
 			w.WriteHeader(404)
 			// TODO - add custom 404 static page
 			fmt.Fprintf(w, "404 Sorry we can't find the page you're looking for :(")
 			return
 		}
-		t, _ := template.ParseFiles(s.staticContentDir + "/" + p)
+
+		_, _ = getSessionCookie(r)
+		t, _ := template.ParseFiles(s.staticContentDir + "/" + "login.html")
 		t.Execute(w, nil)
 	}
 }
@@ -135,7 +144,7 @@ func checkAuth(serverCtx *ServerCtx) Middleware {
 				return
 			}
 			auth, ok := session.Values["authenticated"].(bool)
-			if (!ok || !auth) && r.URL.Path != "/" {
+			if (!ok || !auth) && r.URL.Path != "/" && r.URL.Path != "/favicon.ico" {
 				http.Redirect(w, r, "/", http.StatusFound)
 				return
 			}
@@ -144,3 +153,7 @@ func checkAuth(serverCtx *ServerCtx) Middleware {
 	}
 }
 
+func getSessionCookie(r *http.Request) (string, error) {
+	log.Printf("Getting session cookie for request from %s\n", r.RemoteAddr)
+	return "", nil
+}
