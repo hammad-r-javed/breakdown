@@ -14,8 +14,10 @@ function folders_check {
 folders_check
 
 print_logline "building client proj"
-elm make src/login/Login.elm --output out/login.js
 
+elm-format --yes src
+
+elm make src/login/Login.elm --output out/login.js
 cp src/login/login.html out/login.html
 
 elm make src/dashboard/Dashboard.elm --output out/dashboard.js
