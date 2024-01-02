@@ -51,16 +51,16 @@ func NewServerCtx() (*ServerCtx, error) {
 	return &ctx, nil
 }
 
-func StartServer(serverCtx *ServerCtx) {
-	fs := http.FileServer(http.Dir(serverCtx.staticContentDir))
+func StartServer(s *ServerCtx) {
+	fs := http.FileServer(http.Dir(s.staticContentDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	http.HandleFunc("/", ApplyMiddlewares(rootPage(serverCtx), AllowedMethods(http.MethodGet)))
-	http.HandleFunc("/login", ApplyMiddlewares(returnPage(serverCtx, "login.html"), AllowedMethods(http.MethodGet)))
-	http.HandleFunc("/dashboard", ApplyMiddlewares(returnPage(serverCtx, "dashboard.html"), AllowedMethods(http.MethodGet)))
-	http.HandleFunc("/api/login", ApplyMiddlewares(loginAuth(serverCtx), AllowedMethods(http.MethodPost)))
+	http.HandleFunc("/", ApplyMiddlewares(rootPage(s), checkAuth(s), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/login", ApplyMiddlewares(returnPage(s, "login.html"), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/dashboard", ApplyMiddlewares(returnPage(s, "dashboard.html"), checkAuth(s), AllowedMethods(http.MethodGet)))
+	http.HandleFunc("/api/login", ApplyMiddlewares(loginAuth(s), AllowedMethods(http.MethodPost)))
 
-	log.Println("Starting web server at ", serverCtx.address)
-	http.ListenAndServe(serverCtx.address, nil)
+	log.Println("Starting web server at ", s.address)
+	http.ListenAndServe(s.address, nil)
 }
 
 func logRoute(r *http.Request) {
@@ -114,19 +114,15 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 func rootPage(s *ServerCtx) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logRoute(r)
-		if r.URL.Path != "/" {
-			w.WriteHeader(404)
-			// TODO - add custom 404 static page
-			fmt.Fprintf(w, "404 Sorry we can't find the page you're looking for :(")
+		if r.URL.Path == "/" {
+			log.Println("Redirecting to dashboard")
+			http.Redirect(w, r, "/dashboard", http.StatusFound)
 			return
 		}
-
-		sessionId := getSessionId(r)
-		if sessionId == "" {
-			http.Redirect(w, r, "/login", http.StatusFound)
-		} else {
-			http.Redirect(w, r, "/dashboard", http.StatusFound)
-		}
+		w.WriteHeader(404)
+		// TODO - add custom 404 static page
+		fmt.Fprintf(w, "404 Sorry we can't find the page you're looking for :(")
+		return
 	}
 }
 
@@ -138,18 +134,19 @@ func returnPage(s *ServerCtx, p string) http.HandlerFunc {
 	}
 }
 
-func checkAuth(serverCtx *ServerCtx) Middleware {
+func checkAuth(s *ServerCtx) Middleware {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			session, err := serverCtx.cookieStore.Get(r, "session-cookie")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				fmt.Println("Unable to get session obj!");
+			sessionId := getSessionId(r)
+			sessionAuth, authVerificationErr := s.db.isSessionAuthed(sessionId)
+			if authVerificationErr != nil {
+				log.Println(authVerificationErr)
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, "Sorry, something went wrong!!")
 				return
 			}
-			auth, ok := session.Values["authenticated"].(bool)
-			if (!ok || !auth) && r.URL.Path != "/" && r.URL.Path != "/favicon.ico" {
-				http.Redirect(w, r, "/", http.StatusFound)
+			if !sessionAuth {
+				http.Redirect(w, r, "/login", http.StatusFound)
 				return
 			}
 			f(w, r)

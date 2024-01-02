@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "log"
+	"log"
 	"fmt"
 	"errors"
 	"database/sql"
@@ -27,6 +27,7 @@ type User struct {
 type DataBase interface {
 	init() error
 	getUsers() ([]User, error)
+	isSessionAuthed(string) (bool, error)
 }
 
 // TODO - temp config
@@ -74,4 +75,34 @@ func (ctx *SqliteDB) getUsers() ([]User, error) {
 	}
 
 	return userArr, nil
+}
+
+func (ctx *SqliteDB) isSessionAuthed(sessionId string) (bool, error) {
+	rows, queryErr:= ctx.dbCtx.Query("SELECT authenticated FROM users WHERE session_id=?", sessionId)
+	if queryErr != nil {
+		wrappedErr := errors.Join(queryErr, errors.New("isSessionAuthed() -> Unable to query sqlite3 db!"))
+		return false, wrappedErr
+	}
+
+	raw := 0 
+	authed := false
+	authedArr := make([]bool, 0)
+	for rows.Next() {
+		scanErr := rows.Scan(&raw)
+		if scanErr != nil {
+			wrappedErr := errors.Join(scanErr, errors.New("isSessionAuthed() -> Unable to query sqlite3 db!"))
+			return false, wrappedErr
+		}
+		if raw == 0 {
+			authed = false
+		} else {
+			authed = true
+		}
+		authedArr = append(authedArr, authed)
+	}
+	log.Printf("len(authedArr) = %d\n", len(authedArr))
+	if len(authedArr) == 0 {
+		return false, nil
+	}
+	return authedArr[0], nil
 }
