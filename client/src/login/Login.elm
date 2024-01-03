@@ -379,4 +379,57 @@ loginView loginForm =
 
 signUpView : SignUpForm -> Elem.Element Msg
 signUpView signUpForm =
-    Elem.text "TODO - SIGNUP VIEW"
+    Elem.column
+        [ Elem.centerX
+        , Elem.spacing 30
+        ]
+        [ ElemInput.username
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.username
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
+            , onChange = \newUsername -> SignUpMsg <| UpdateSignUpForm { signUpForm | username = newUsername }
+            }
+        , ElemInput.email
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.email
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Email")
+            , onChange = \newEmail -> SignUpMsg <| UpdateSignUpForm { signUpForm | email = newEmail }
+            }
+        , ElemInput.newPassword
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.password
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "New Password")
+            , onChange = \newPassword -> SignUpMsg <| UpdateSignUpForm { signUpForm | password = newPassword }
+            , show = False
+            }
+        , ElemInput.button
+            [ ElemFont.size 30
+            , Elem.centerX
+            , Elem.padding 20
+            , ElemBorder.rounded 10
+            , ElemBg.color Style.colourLightGreen
+            ]
+            { onPress = Nothing
+            , label = Elem.text "SignUp"
+            }
+        , Elem.row
+            [ Elem.centerX ]
+            [ Elem.text "Already have an account?  "
+            , ElemInput.button
+                [ ElemFont.size 18
+                , ElemFont.bold
+                , Elem.padding 10
+                , ElemBg.color Style.colourBlue
+                , ElemBorder.rounded 5
+                ]
+                { onPress = Just <| SignUpMsg GotoLogin
+                , label = Elem.text "Login"
+                }
+            ]
+        ]
