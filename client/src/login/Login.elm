@@ -20,7 +20,7 @@ import PageStyle as Style
 -- MAIN
 
 
-main : Program () LoginOptions Msg
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -34,7 +34,7 @@ main =
 -- MODEL
 
 
-type LoginOptions
+type Model
     = Login LoginForm
     | SignUp SignUpForm
 
@@ -68,7 +68,7 @@ emptySignUpForm =
 -- INIT
 
 
-init : () -> ( LoginOptions, Cmd msg )
+init : () -> ( Model, Cmd msg )
 init _ =
     ( Login emptyLoginForm
     , Cmd.none
@@ -95,50 +95,60 @@ dashboardUrl =
 
 
 type Msg
+    = NoOp
+    | LoginMsg LoginMsgT
+    | SignUpMsg SignUpMsgT
+
+
+type LoginMsgT
     = UpdateLoginForm LoginForm
-    | UpdateSignUpForm SignUpForm
     | GotoSignUp
-    | GotoLogin
     | SendLoginRequest
     | ReceivedLoginRequestResponse (Result Http.Error String)
 
 
-encodeLoginCreds : LoginOptions -> JsonEncode.Value
-encodeLoginCreds loginOptions =
+type SignUpMsgT
+    = UpdateSignUpForm SignUpForm
+    | GotoLogin
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
     let
-        loginCreds =
-            case loginOptions of
-                Login loginData ->
-                    loginData
+        loginForm =
+            case model of
+                Login form ->
+                    form
 
                 _ ->
                     emptyLoginForm
+
+        signUpForm =
+            case model of
+                SignUp form ->
+                    form
+
+                _ ->
+                    emptySignUpForm
     in
-    JsonEncode.object
-        [ ( "username", JsonEncode.string loginCreds.username )
-        , ( "password", JsonEncode.string loginCreds.password )
-        ]
-
-
-sendLoginRequest : LoginOptions -> Cmd Msg
-sendLoginRequest loginOptions =
-    Http.post
-        { url = loginAuthUrl
-        , body = Http.jsonBody (encodeLoginCreds loginOptions)
-        , expect = Http.expectString ReceivedLoginRequestResponse
-        }
-
-
-update : Msg -> LoginOptions -> ( LoginOptions, Cmd Msg )
-update msg loginOptions =
     case msg of
-        UpdateLoginForm loginForm ->
-            ( Login loginForm
+        NoOp ->
+            ( model
             , Cmd.none
             )
 
-        UpdateSignUpForm signUpForm ->
-            ( SignUp signUpForm
+        LoginMsg loginMsg ->
+            loginUpdateHandler loginMsg loginForm
+
+        SignUpMsg signUpMsg ->
+            signUpUpdateHandler signUpMsg
+
+
+loginUpdateHandler : LoginMsgT -> LoginForm -> ( Model, Cmd Msg )
+loginUpdateHandler msg loginForm =
+    case msg of
+        UpdateLoginForm newForm ->
+            ( Login newForm
             , Cmd.none
             )
 
@@ -147,17 +157,12 @@ update msg loginOptions =
             , Cmd.none
             )
 
-        GotoLogin ->
-            ( Login emptyLoginForm
-            , Cmd.none
-            )
-
         SendLoginRequest ->
-            ( loginOptions
-            , sendLoginRequest loginOptions
+            ( Login loginForm
+            , Cmd.map LoginMsg <| sendLoginRequest loginForm
             )
 
-        ReceivedLoginRequestResponse response ->
+        ReceivedLoginRequestResponse result ->
             let
                 invalidCredsResponse =
                     "Invalid username or password!"
@@ -165,52 +170,69 @@ update msg loginOptions =
                 somethingWentWrongResponse =
                     "Something went wrong, please try again later!"
             in
-            case response of
-                Err httpErr ->
-                    case httpErr of
+            case result of
+                Err httpError ->
+                    case httpError of
                         Http.BadStatus status ->
                             case status of
                                 401 ->
-                                    case loginOptions of
-                                        Login loginForm ->
-                                            ( Login { emptyLoginForm | serverResponse = invalidCredsResponse }
-                                            , Cmd.none
-                                            )
-
-                                        SignUp _ ->
-                                            ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
-                                            , Cmd.none
-                                            )
+                                    ( Login { loginForm | serverResponse = invalidCredsResponse }
+                                    , Cmd.none
+                                    )
 
                                 _ ->
-                                    ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
+                                    ( Login { loginForm | serverResponse = somethingWentWrongResponse }
                                     , Cmd.none
                                     )
 
                         _ ->
-                            ( Login { emptyLoginForm | serverResponse = somethingWentWrongResponse }
+                            ( Login { loginForm | serverResponse = somethingWentWrongResponse }
                             , Cmd.none
                             )
 
                 Ok responseString ->
-                    case loginOptions of
-                        Login loginForm ->
-                            ( Login { emptyLoginForm | serverResponse = responseString }
-                            , Nav.load dashboardUrl
-                            )
+                    ( Login { loginForm | serverResponse = responseString }
+                    , Nav.load dashboardUrl
+                    )
 
-                        SignUp _ ->
-                            ( Login { emptyLoginForm | serverResponse = responseString }
-                            , Nav.load dashboardUrl
-                            )
+
+encodeLoginCreds : LoginForm -> JsonEncode.Value
+encodeLoginCreds loginForm =
+    JsonEncode.object
+        [ ( "username", JsonEncode.string loginForm.username )
+        , ( "password", JsonEncode.string loginForm.password )
+        ]
+
+
+sendLoginRequest : LoginForm -> Cmd LoginMsgT
+sendLoginRequest loginForm =
+    Http.post
+        { url = loginAuthUrl
+        , body = Http.jsonBody <| encodeLoginCreds loginForm
+        , expect = Http.expectString ReceivedLoginRequestResponse
+        }
+
+
+signUpUpdateHandler : SignUpMsgT -> ( Model, Cmd msg )
+signUpUpdateHandler msg =
+    case msg of
+        UpdateSignUpForm newForm ->
+            ( SignUp newForm
+            , Cmd.none
+            )
+
+        GotoLogin ->
+            ( Login emptyLoginForm
+            , Cmd.none
+            )
 
 
 
 -- SUBSCRIPTIONS
 
 
-subscriptions : LoginOptions -> Sub msg
-subscriptions loginFormOptions =
+subscriptions : Model -> Sub msg
+subscriptions model =
     Sub.none
 
 
@@ -218,8 +240,17 @@ subscriptions loginFormOptions =
 -- VIEW
 
 
-view : LoginOptions -> Html Msg
-view loginOptions =
+view : Model -> Html Msg
+view model =
+    let
+        formView =
+            case model of
+                Login loginForm ->
+                    loginView loginForm
+
+                SignUp signUpForm ->
+                    signUpView signUpForm
+    in
     Elem.layout
         [ ElemBg.color Style.baseBgColour
         , ElemFont.color Style.baseFontFgColor
@@ -249,7 +280,7 @@ view loginOptions =
                     }
                 ]
                 [ formHead
-                , formInputs loginOptions
+                , formView
                 ]
             ]
 
@@ -274,133 +305,131 @@ formHead =
         ]
 
 
-formInputs : LoginOptions -> Elem.Element Msg
-formInputs loginOptions =
-    case loginOptions of
-        Login loginForm ->
-            let
-                serverResponseBox =
-                    case loginForm.serverResponse of
-                        "" ->
-                            Elem.text ""
+loginView : LoginForm -> Elem.Element Msg
+loginView loginForm =
+    let
+        serverResponseBox =
+            case loginForm.serverResponse of
+                "" ->
+                    Elem.text ""
 
-                        _ ->
-                            Elem.el
-                                [ Elem.centerX
-                                , Elem.width Elem.shrink
-                                , Elem.height Elem.shrink
-                                ]
-                            <|
-                                Elem.el
-                                    [ Elem.paddingXY 10 10
-                                    , ElemBg.color <| Elem.rgb 0.55 0 0
-                                    , ElemBorder.rounded 5
-                                    ]
-                                <|
-                                    Elem.text loginForm.serverResponse
-            in
-            Elem.column
-                [ Elem.centerX
-                , Elem.spacing 30
-                ]
-                [ ElemInput.username
-                    [ ElemBg.color Style.inputFieldBgColour
-                    ]
-                    { text = loginForm.username
-                    , placeholder = Nothing
-                    , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
-                    , onChange = \newUsername -> UpdateLoginForm { loginForm | username = newUsername }
-                    }
-                , ElemInput.currentPassword
-                    [ ElemBg.color Style.inputFieldBgColour
-                    ]
-                    { text = loginForm.password
-                    , placeholder = Nothing
-                    , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Password")
-                    , onChange = \newPassword -> UpdateLoginForm { loginForm | password = newPassword }
-                    , show = False
-                    }
-                , serverResponseBox
-                , ElemInput.button
-                    [ ElemFont.size 30
-                    , Elem.centerX
-                    , Elem.padding 20
-                    , ElemBorder.rounded 10
-                    , ElemBg.color Style.colourLightGreen
-                    ]
-                    { onPress = Just SendLoginRequest
-                    , label = Elem.text "Login"
-                    }
-
-                -- Form Footer
-                , Elem.row
-                    [ Elem.centerX ]
-                    [ Elem.text "Don't have an account?  "
-                    , ElemInput.button
-                        [ ElemFont.size 18
-                        , ElemFont.bold
-                        , Elem.padding 10
-                        , ElemBg.color Style.colourBlue
-                        , ElemBorder.rounded 5
+                _ ->
+                    Elem.el
+                        [ Elem.centerX
+                        , Elem.width Elem.shrink
+                        , Elem.height Elem.shrink
                         ]
-                        { onPress = Just GotoSignUp
-                        , label = Elem.text "SignUp"
-                        }
-                    ]
+                    <|
+                        Elem.el
+                            [ Elem.paddingXY 10 10
+                            , ElemBg.color <| Elem.rgb 0.55 0 0
+                            , ElemBorder.rounded 5
+                            ]
+                        <|
+                            Elem.text loginForm.serverResponse
+    in
+    Elem.column
+        [ Elem.centerX
+        , Elem.spacing 30
+        ]
+        [ ElemInput.username
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = loginForm.username
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
+            , onChange = \newUsername -> LoginMsg <| UpdateLoginForm { loginForm | username = newUsername }
+            }
+        , ElemInput.currentPassword
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = loginForm.password
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Password")
+            , onChange = \newPassword -> LoginMsg <| UpdateLoginForm { loginForm | password = newPassword }
+            , show = False
+            }
+        , serverResponseBox
+        , ElemInput.button
+            [ ElemFont.size 30
+            , Elem.centerX
+            , Elem.padding 20
+            , ElemBorder.rounded 10
+            , ElemBg.color Style.colourLightGreen
+            ]
+            { onPress = Just <| LoginMsg SendLoginRequest
+            , label = Elem.text "Login"
+            }
+        , Elem.row
+            [ Elem.centerX ]
+            [ Elem.text "Don't have an account?  "
+            , ElemInput.button
+                [ ElemFont.size 18
+                , ElemFont.bold
+                , Elem.padding 10
+                , ElemBg.color Style.colourBlue
+                , ElemBorder.rounded 5
                 ]
+                { onPress = Just <| LoginMsg GotoSignUp
+                , label = Elem.text "SignUp"
+                }
+            ]
+        ]
 
-        SignUp signUpForm ->
-            Elem.column
-                [ Elem.centerX
-                , Elem.spacing 30
+
+signUpView : SignUpForm -> Elem.Element Msg
+signUpView signUpForm =
+    Elem.column
+        [ Elem.centerX
+        , Elem.spacing 30
+        ]
+        [ ElemInput.username
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.username
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
+            , onChange = \newUsername -> SignUpMsg <| UpdateSignUpForm { signUpForm | username = newUsername }
+            }
+        , ElemInput.email
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.email
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Email")
+            , onChange = \newEmail -> SignUpMsg <| UpdateSignUpForm { signUpForm | email = newEmail }
+            }
+        , ElemInput.newPassword
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = signUpForm.password
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "New Password")
+            , onChange = \newPassword -> SignUpMsg <| UpdateSignUpForm { signUpForm | password = newPassword }
+            , show = False
+            }
+        , ElemInput.button
+            [ ElemFont.size 30
+            , Elem.centerX
+            , Elem.padding 20
+            , ElemBorder.rounded 10
+            , ElemBg.color Style.colourLightGreen
+            ]
+            { onPress = Nothing
+            , label = Elem.text "SignUp"
+            }
+        , Elem.row
+            [ Elem.centerX ]
+            [ Elem.text "Already have an account?  "
+            , ElemInput.button
+                [ ElemFont.size 18
+                , ElemFont.bold
+                , Elem.padding 10
+                , ElemBg.color Style.colourBlue
+                , ElemBorder.rounded 5
                 ]
-                [ ElemInput.username
-                    [ ElemBg.color Style.inputFieldBgColour
-                    ]
-                    { text = signUpForm.username
-                    , placeholder = Nothing
-                    , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
-                    , onChange = \newUsername -> UpdateSignUpForm { signUpForm | username = newUsername }
-                    }
-                , ElemInput.email
-                    [ ElemBg.color Style.inputFieldBgColour
-                    ]
-                    { text = signUpForm.email
-                    , placeholder = Nothing
-                    , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Email")
-                    , onChange = \newEmail -> UpdateSignUpForm { signUpForm | email = newEmail }
-                    }
-                , ElemInput.newPassword
-                    [ ElemBg.color Style.inputFieldBgColour
-                    ]
-                    { text = signUpForm.password
-                    , placeholder = Nothing
-                    , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "New Password")
-                    , onChange = \newPassword -> UpdateSignUpForm { signUpForm | password = newPassword }
-                    , show = False
-                    }
-                , ElemInput.button
-                    [ ElemFont.size 30
-                    , Elem.centerX
-                    , Elem.padding 20
-                    , ElemBorder.rounded 10
-                    , ElemBg.color Style.colourLightGreen
-                    ]
-                    { onPress = Nothing
-                    , label = Elem.text "SignUp"
-                    }
-                , Elem.row
-                    [ Elem.centerX ]
-                    [ Elem.text "Already have an account?  "
-                    , ElemInput.button
-                        [ ElemFont.size 18
-                        , ElemFont.bold
-                        , Elem.padding 10
-                        , ElemBg.color Style.colourBlue
-                        , ElemBorder.rounded 5
-                        ]
-                        { onPress = Just GotoLogin
-                        , label = Elem.text "Login"
-                        }
-                    ]
-                ]
+                { onPress = Just <| SignUpMsg GotoLogin
+                , label = Elem.text "Login"
+                }
+            ]
+        ]
