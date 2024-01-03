@@ -242,9 +242,141 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
+    let
+        formView =
+            case model of
+                Login loginForm ->
+                    loginView loginForm
+
+                SignUp signUpForm ->
+                    signUpView signUpForm
+    in
     Elem.layout
         [ ElemBg.color Style.baseBgColour
         , ElemFont.color Style.baseFontFgColor
         ]
     <|
-        Elem.text "login page loaded"
+        Elem.column
+            [ Elem.width Elem.fill
+            , Elem.height Elem.fill
+            , Elem.centerY
+            , Elem.centerX
+            ]
+            [ Components.logoOnlyNavBar
+            , Elem.column
+                [ Elem.width Elem.shrink
+                , Elem.height Elem.shrink
+                , Elem.centerX
+                , Elem.centerY
+                , Elem.padding 60
+                , Elem.spacing 25
+                , ElemBg.color Style.elementBgColour
+                , ElemBorder.rounded 15
+                , ElemBorder.shadow
+                    { size = 5.0
+                    , offset = ( 0.0, 0.0 )
+                    , blur = 30.0
+                    , color = Elem.rgb 0.05 0.05 0.05
+                    }
+                ]
+                [ formHead
+                , formView
+                ]
+            ]
+
+
+formHead : Elem.Element Msg
+formHead =
+    Elem.column
+        [ Elem.centerX
+        ]
+        [ Elem.row
+            [ ElemRegion.heading 1
+            , ElemFont.size 36
+            ]
+            [ Elem.text "Welcome to Breakdown!" ]
+
+        -- Acts as spacer
+        , Elem.row
+            [ Elem.centerX
+            , Elem.height (Elem.px 30)
+            ]
+            []
+        ]
+
+
+loginView : LoginForm -> Elem.Element Msg
+loginView loginForm =
+    let
+        serverResponseBox =
+            case loginForm.serverResponse of
+                "" ->
+                    Elem.text ""
+
+                _ ->
+                    Elem.el
+                        [ Elem.centerX
+                        , Elem.width Elem.shrink
+                        , Elem.height Elem.shrink
+                        ]
+                    <|
+                        Elem.el
+                            [ Elem.paddingXY 10 10
+                            , ElemBg.color <| Elem.rgb 0.55 0 0
+                            , ElemBorder.rounded 5
+                            ]
+                        <|
+                            Elem.text loginForm.serverResponse
+    in
+    Elem.column
+        [ Elem.centerX
+        , Elem.spacing 30
+        ]
+        [ ElemInput.username
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = loginForm.username
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Username")
+            , onChange = \newUsername -> LoginMsg <| UpdateLoginForm { loginForm | username = newUsername }
+            }
+        , ElemInput.currentPassword
+            [ ElemBg.color Style.inputFieldBgColour
+            ]
+            { text = loginForm.password
+            , placeholder = Nothing
+            , label = ElemInput.labelAbove [ ElemFont.size 20 ] (Elem.text "Password")
+            , onChange = \newPassword -> LoginMsg <| UpdateLoginForm { loginForm | password = newPassword }
+            , show = False
+            }
+        , serverResponseBox
+        , ElemInput.button
+            [ ElemFont.size 30
+            , Elem.centerX
+            , Elem.padding 20
+            , ElemBorder.rounded 10
+            , ElemBg.color Style.colourLightGreen
+            ]
+            { onPress = Just <| LoginMsg SendLoginRequest
+            , label = Elem.text "Login"
+            }
+        , Elem.row
+            [ Elem.centerX ]
+            [ Elem.text "Don't have an account?  "
+            , ElemInput.button
+                [ ElemFont.size 18
+                , ElemFont.bold
+                , Elem.padding 10
+                , ElemBg.color Style.colourBlue
+                , ElemBorder.rounded 5
+                ]
+                { onPress = Just <| LoginMsg GotoSignUp
+                , label = Elem.text "SignUp"
+                }
+            ]
+        ]
+
+
+signUpView : SignUpForm -> Elem.Element Msg
+signUpView signUpForm =
+    Elem.text "TODO - SIGNUP VIEW"
