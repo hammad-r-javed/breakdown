@@ -135,7 +135,17 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 func signUp(s *ServerCtx) http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
 		logRoute(r)
-		fmt.Fprintf(w, "signup stub called")
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Sorry, something went wrong!!")
+			return
+		}
+
+		log.Printf("response body = %s\n", body)
+		w.WriteHeader(500) // TEMP
+		fmt.Fprintf(w, "signup stub called") // TEMP
 		return
 	}
 }

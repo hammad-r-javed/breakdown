@@ -94,6 +94,11 @@ dashboardUrl =
     baseUrl ++ "/dashboard"
 
 
+signUpUrl : String
+signUpUrl =
+    baseUrl ++ "/api/signup"
+
+
 type Msg
     = NoOp
     | LoginMsg LoginMsgT
@@ -110,6 +115,8 @@ type LoginMsgT
 type SignUpMsgT
     = UpdateSignUpForm SignUpForm
     | GotoLogin
+    | SendSignUpRequest
+    | ReceivedSignUpRequestResponse (Result Http.Error String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -141,7 +148,7 @@ update msg model =
             loginUpdateHandler loginMsg loginForm
 
         SignUpMsg signUpMsg ->
-            signUpUpdateHandler signUpMsg
+            signUpUpdateHandler signUpMsg signUpForm
 
 
 loginUpdateHandler : LoginMsgT -> LoginForm -> ( Model, Cmd Msg )
@@ -213,8 +220,8 @@ sendLoginRequest loginForm =
         }
 
 
-signUpUpdateHandler : SignUpMsgT -> ( Model, Cmd msg )
-signUpUpdateHandler msg =
+signUpUpdateHandler : SignUpMsgT -> SignUpForm -> ( Model, Cmd Msg )
+signUpUpdateHandler msg signUpForm =
     case msg of
         UpdateSignUpForm newForm ->
             ( SignUp newForm
@@ -225,6 +232,70 @@ signUpUpdateHandler msg =
             ( Login emptyLoginForm
             , Cmd.none
             )
+
+        SendSignUpRequest ->
+            ( SignUp signUpForm
+            , Cmd.map SignUpMsg <| sendSignUpRequest signUpForm
+            )
+
+        ReceivedSignUpRequestResponse result ->
+            let
+                usernameTaken =
+                    "Username already in use, please try again!"
+
+                invalidUserOrEmail =
+                    "Username or Email invalid, please try again!"
+
+                somethingWentWrongResponse =
+                    "Something went wrong, please try again later!"
+            in
+            case result of
+                Err httpError ->
+                    case httpError of
+                        Http.BadStatus status ->
+                            case status of
+                                409 ->
+                                    ( SignUp { signUpForm | serverResponse = usernameTaken }
+                                    , Cmd.none
+                                    )
+
+                                400 ->
+                                    ( SignUp { signUpForm | serverResponse = invalidUserOrEmail }
+                                    , Cmd.none
+                                    )
+
+                                _ ->
+                                    ( SignUp { signUpForm | serverResponse = somethingWentWrongResponse }
+                                    , Cmd.none
+                                    )
+
+                        _ ->
+                            ( SignUp { signUpForm | serverResponse = somethingWentWrongResponse }
+                            , Cmd.none
+                            )
+
+                Ok responseString ->
+                    ( Login emptyLoginForm
+                    , Cmd.none
+                    )
+
+
+encodeSignUpCreds : SignUpForm -> JsonEncode.Value
+encodeSignUpCreds signUpForm =
+    JsonEncode.object
+        [ ( "username", JsonEncode.string signUpForm.username )
+        , ( "password", JsonEncode.string signUpForm.password )
+        , ( "email", JsonEncode.string signUpForm.email )
+        ]
+
+
+sendSignUpRequest : SignUpForm -> Cmd SignUpMsgT
+sendSignUpRequest signUpForm =
+    Http.post
+        { url = signUpUrl
+        , body = Http.jsonBody <| encodeSignUpCreds signUpForm
+        , expect = Http.expectString ReceivedSignUpRequestResponse
+        }
 
 
 
@@ -379,6 +450,27 @@ loginView loginForm =
 
 signUpView : SignUpForm -> Elem.Element Msg
 signUpView signUpForm =
+    let
+        serverResponseBox =
+            case signUpForm.serverResponse of
+                "" ->
+                    Elem.text ""
+
+                _ ->
+                    Elem.el
+                        [ Elem.centerX
+                        , Elem.width Elem.shrink
+                        , Elem.height Elem.shrink
+                        ]
+                    <|
+                        Elem.el
+                            [ Elem.paddingXY 10 10
+                            , ElemBg.color <| Elem.rgb 0.55 0 0
+                            , ElemBorder.rounded 5
+                            ]
+                        <|
+                            Elem.text signUpForm.serverResponse
+    in
     Elem.column
         [ Elem.centerX
         , Elem.spacing 30
@@ -408,6 +500,7 @@ signUpView signUpForm =
             , onChange = \newPassword -> SignUpMsg <| UpdateSignUpForm { signUpForm | password = newPassword }
             , show = False
             }
+        , serverResponseBox
         , ElemInput.button
             [ ElemFont.size 30
             , Elem.centerX
@@ -415,7 +508,7 @@ signUpView signUpForm =
             , ElemBorder.rounded 10
             , ElemBg.color Style.colourLightGreen
             ]
-            { onPress = Nothing
+            { onPress = Just <| SignUpMsg SendSignUpRequest
             , label = Elem.text "SignUp"
             }
         , Elem.row
