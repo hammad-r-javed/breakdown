@@ -53,6 +53,7 @@ func StartServer(s *ServerCtx) {
 	http.HandleFunc("/login", ApplyMiddlewares(returnPage(s, "login.html"), AllowedMethods(http.MethodGet)))
 	http.HandleFunc("/dashboard", ApplyMiddlewares(returnPage(s, "dashboard.html"), checkAuth(s), AllowedMethods(http.MethodGet)))
 	http.HandleFunc("/api/login", ApplyMiddlewares(loginAuth(s), AllowedMethods(http.MethodPost)))
+	http.HandleFunc("/api/signup", ApplyMiddlewares(signUp(s), AllowedMethods(http.MethodPost)))
 
 	log.Println("Starting web server at ", s.address)
 	http.ListenAndServe(s.address, nil)
@@ -127,6 +128,14 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 
 		w.Header().Set("Set-Cookie", "sessionId=" + sessionId + "; Path=/")
 		w.WriteHeader(200)
+		return
+	}
+}
+
+func signUp(s *ServerCtx) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		logRoute(r)
+		fmt.Fprintf(w, "signup stub called")
 		return
 	}
 }
