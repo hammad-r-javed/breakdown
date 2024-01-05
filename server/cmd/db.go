@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "log"
+	"log"
 	"time"
 	"fmt"
 	"errors"
@@ -20,6 +20,7 @@ type User struct {
 	id int
 	username string
 	password string
+	email string
 	sessionID string
 	authExpiration int
 }
@@ -30,6 +31,7 @@ type DataBase interface {
 	isSessionAuthed(string) (bool, error)
 	credsExist(string, string) (int, error)
 	startUserSession(int, string) error
+	usernameExists(username string) (bool, error)
 }
 
 // TODO - temp config
@@ -135,3 +137,29 @@ func (ctx *SqliteDB) startUserSession(userId int, sessionId string) error {
 	}
 	return nil
 }
+
+func (ctx *SqliteDB) usernameExists(username string) (bool, error) {
+	rows, queryErr:= ctx.dbCtx.Query("SELECT user_id FROM users WHERE username=?", username)
+	if queryErr != nil {
+		wrappedErr := errors.Join(queryErr, errors.New("usernameExist() -> Unable to query sqlite3 db!"))
+		return false, wrappedErr
+	}
+
+	userId := 0
+	foundUsers := make([]int, 0)
+	for rows.Next() {
+		scanErr := rows.Scan(&userId)
+		if scanErr != nil {
+			wrappedErr := errors.Join(scanErr, errors.New("credsExist() -> Unable to scan sqlite3 query result!"))
+			return false, wrappedErr
+		}
+		foundUsers = append(foundUsers, userId)
+	}
+	if len(foundUsers) == 0 {
+		return false, nil
+	}
+
+	log.Printf("List of users found = ", foundUsers)
+	return true, nil
+}
+

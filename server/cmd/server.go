@@ -17,6 +17,12 @@ type LoginCred struct {
 	Password string `json:"password"`
 }
 
+type SignUpCred struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email string `json:"email"`
+}
+
 type ServerCtx struct {
 	address string
 	staticContentDir string
@@ -143,7 +149,29 @@ func signUp(s *ServerCtx) http.HandlerFunc {
 			return
 		}
 
-		log.Printf("response body = %s\n", body)
+		var creds SignUpCred
+		err = json.Unmarshal([]byte(body), &creds)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error, Cannot deserialise json data")
+			return
+		}
+
+		userExistResult, usernameVerificationErr := s.db.usernameExists(creds.Username)
+		if usernameVerificationErr != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error, cannot verify username existance")
+			return
+		}
+
+		log.Printf("User exists result = %t\n", userExistResult)
+
+		if userExistResult {
+			w.WriteHeader(http.StatusConflict)
+			fmt.Fprintf(w, "Error, username already exists!")
+			return
+		}
+
 		w.WriteHeader(500) // TEMP
 		fmt.Fprintf(w, "signup stub called") // TEMP
 		return
