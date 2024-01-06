@@ -156,24 +156,43 @@ func signUp(s *ServerCtx) http.HandlerFunc {
 			fmt.Fprintf(w, "Error, Cannot deserialise json data")
 			return
 		}
+		
+		creds.Username = strings.TrimSpace(creds.Username)
+		creds.Password = strings.TrimSpace(creds.Password)
+		creds.Email = strings.TrimSpace(creds.Email)
 
-		userExistResult, usernameVerificationErr := s.db.usernameExists(creds.Username)
+		if creds.Username == "" || creds.Password == "" || creds.Email == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Credentials cannot be empty!")
+			return
+		}
+
+		userExists, usernameVerificationErr := s.db.usernameExists(creds.Username)
 		if usernameVerificationErr != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Error, cannot verify username existance")
 			return
 		}
 
-		log.Printf("User exists result = %t\n", userExistResult)
-
-		if userExistResult {
+		if userExists {
 			w.WriteHeader(http.StatusConflict)
 			fmt.Fprintf(w, "Error, username already exists!")
 			return
 		}
 
-		w.WriteHeader(500) // TEMP
-		fmt.Fprintf(w, "signup stub called") // TEMP
+		newSessionId := uuid.New().String()
+		newUser := User { username: creds.Username, email: creds.Email, password: creds.Password, sessionID: newSessionId, authExpiration: 1 }
+
+		addNewUserErr := s.db.addUser(newUser)
+		if addNewUserErr != nil {
+			log.Println(addNewUserErr)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Sorry, something went wrong!!")
+			return
+		}
+
+		w.WriteHeader(http.StatusOK) // TEMP
+		fmt.Fprintf(w, "User successfully created!")
 		return
 	}
 }

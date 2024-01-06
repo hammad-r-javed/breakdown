@@ -241,7 +241,7 @@ signUpUpdateHandler msg signUpForm =
         ReceivedSignUpRequestResponse result ->
             let
                 usernameTaken =
-                    "Username already in use, please try again!"
+                    "Username already in use, please a different username!"
 
                 invalidUserOrEmail =
                     "Username or Email invalid, please try again!"
@@ -275,7 +275,7 @@ signUpUpdateHandler msg signUpForm =
                             )
 
                 Ok responseString ->
-                    ( Login emptyLoginForm
+                    ( Login { emptyLoginForm | serverResponse = "Account created, please login!" }
                     , Cmd.none
                     )
 

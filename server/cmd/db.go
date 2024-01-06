@@ -32,6 +32,7 @@ type DataBase interface {
 	credsExist(string, string) (int, error)
 	startUserSession(int, string) error
 	usernameExists(username string) (bool, error)
+	addUser(User) error
 }
 
 // TODO - temp config
@@ -163,3 +164,12 @@ func (ctx *SqliteDB) usernameExists(username string) (bool, error) {
 	return true, nil
 }
 
+func (ctx *SqliteDB) addUser(newUser User) error {
+	queryString := "INSERT into users (username, email, password, session_id, auth_expiration) VALUES (?, ?, ?, ?, ?);"
+	_, queryErr:= ctx.dbCtx.Exec(queryString, newUser.username, newUser.email, newUser.password, newUser.sessionID, newUser.authExpiration)
+	if queryErr != nil {
+		wrappedErr := errors.Join(queryErr, errors.New("sqlite3 | addUser() -> Unable to execute 'add new user' query!"))
+		return wrappedErr
+	}
+	return nil
+}
