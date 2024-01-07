@@ -104,6 +104,7 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 		var creds LoginCred
 		err = json.Unmarshal([]byte(body), &creds)
 		if err != nil {
+			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Error, Cannot deserialise json data")
 			return
@@ -111,7 +112,7 @@ func loginAuth(s *ServerCtx) http.HandlerFunc {
 
 		userId, credsVerificationErr := s.db.credsExist(creds.Username, creds.Password)
 		if credsVerificationErr != nil {
-			log.Println(err)
+			log.Println(credsVerificationErr)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "Sorry, something went wrong!!")
 			return
@@ -152,6 +153,7 @@ func signUp(s *ServerCtx) http.HandlerFunc {
 		var creds SignUpCred
 		err = json.Unmarshal([]byte(body), &creds)
 		if err != nil {
+			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Error, Cannot deserialise json data")
 			return
@@ -169,6 +171,7 @@ func signUp(s *ServerCtx) http.HandlerFunc {
 
 		userExists, usernameVerificationErr := s.db.usernameExists(creds.Username)
 		if usernameVerificationErr != nil {
+			log.Println(usernameVerificationErr)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Error, cannot verify username existance")
 			return
