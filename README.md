@@ -2,7 +2,7 @@
 The in-house project management tool I plan on developing over time.
 
 ## Reasons for creating the project
-I will be using this project to explore software project management and my interpretation of agile development. While focus on interactions over processes is one of the core ideas of the original agile manifesto, tools have the capacity to make collaboration & communication easier, and this is what I aim to do with breakdown.
+I will be using this project to explore software project management and my interpretation of agile development. While focus on interactions over processes is one of the core ideas of the original agile manifesto, tools have the capacity to make collaboration & communication easier, and this is what I aim to explore with Breakdown.
 
 Another reason for creating this tool instead of using an existing one is I can use it to learn and explore technologies that I'm interested in, like (but not limited to) Elm and Gleam!
 
