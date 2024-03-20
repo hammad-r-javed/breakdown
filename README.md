@@ -1,12 +1,10 @@
 # Breakdown
-
 The in-house project management tool I plan on developing over time.
-To start with it's simply going to be a tool that allows me to create Kanbans and Work Breakdown Structures!
 
 ## Reasons for creating the project
-When managing a project I like simple kanban boards and a WBS, for tracking and organising the progress being/to made for said project. The boards are always open to change/re-organisation becuase projects change throughout their development.
+I will be using this project to explore software project management and my interpretation of agile development. While focus on interactions over processes is one of the core ideas of the original agile manifesto, tools have the capacity to make collaboration & communication easier, and this is what I aim to do with breakdown.
 
-Another reason for creating this tool instead of using an existing one is I can use it to learn and explore technologies that I'm interested in, like (but not limited to) Elm and Golang!
+Another reason for creating this tool instead of using an existing one is I can use it to learn and explore technologies that I'm interested in, like (but not limited to) Elm and Gleam!
 
 ## Project Status
 It's basically just been initialised so don't expect..well anything right now.
@@ -17,7 +15,7 @@ It's basically just been initialised so don't expect..well anything right now.
 ### Requirements
 * Elm lang compiler
 * elm-format
-* Go lang compiler
+* Gleam compiler (+ all necessary gleam deps)
 
 ### Build Project
 

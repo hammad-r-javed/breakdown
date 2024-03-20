@@ -1,2 +1,10 @@
+*.beam
+*.ez
 build/
-.env
+erl_crash.dump
+vars/
+out/
+db/
+.DS_Store
+.localized
+IGNORE/
