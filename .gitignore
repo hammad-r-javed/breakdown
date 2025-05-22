@@ -1,3 +1,11 @@
+IGNORE/
+.DS_Store
+.localized
+cabal-dir/
+
+elm-stuff
+repl-temp-*
+
 dist
 dist-*
 cabal-dev
